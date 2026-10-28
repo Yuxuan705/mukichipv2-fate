@@ -348,6 +348,15 @@
     /* =========================================================
        4. Floating Bottom Right Instagram Stamp (Pinned to Corner)
        ========================================================= */
+    @keyframes floatStamp {
+      0%, 100% {
+        transform: translateY(0px) rotate(0deg);
+      }
+      50% {
+        transform: translateY(-6px) rotate(2.5deg);
+      }
+    }
+
     .stamp-link {
       position: fixed;
       right: 14px;
@@ -359,25 +368,27 @@
       text-decoration: none;
       outline: none;
       cursor: pointer;
-      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      animation: floatStamp 3.2s ease-in-out infinite;
       user-select: none;
       -webkit-user-drag: none;
     }
 
     .stamp-link:hover {
-      transform: scale(1.08) rotate(3deg);
+      animation-play-state: paused;
+      transform: scale(1.06) rotate(3deg);
     }
 
     .stamp-link:active {
+      animation-play-state: paused;
       transform: scale(0.8) !important;
     }
 
     .stamp-img {
-      width: 76px;
-      height: 76px;
+      width: 66px;
+      height: 66px;
       display: block;
       object-fit: contain;
-      filter: drop-shadow(0 3px 10px rgba(146, 102, 83, 0.16));
+      filter: drop-shadow(0 4px 12px rgba(146, 102, 83, 0.18));
     }
 
   </style>
@@ -493,11 +504,19 @@
     }
 
     /* =========================================================
-       3. Physical Web Audio Synthesis
+       3. Audio Engine: High-Fidelity Audio Files + Web Audio Fallback
        ========================================================= */
     let audioCtx = null;
+    let isAudioUnlocked = false;
 
-    function getAudioContext() {
+    // Preload audio elements
+    const flickAudio = new Audio('coin-flick.wav');
+    const landAudio = new Audio('coin-land.wav');
+    flickAudio.preload = 'auto';
+    landAudio.preload = 'auto';
+
+    // Unlock audio context and HTML5 Audio on the first user interaction
+    function unlockAudioEngine() {
       if (!audioCtx) {
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
         if (AudioContextClass) {
@@ -507,69 +526,123 @@
       if (audioCtx && audioCtx.state === 'suspended') {
         audioCtx.resume();
       }
-      return audioCtx;
+
+      if (!isAudioUnlocked) {
+        isAudioUnlocked = true;
+        // Warm up HTML5 Audio elements silently
+        flickAudio.play().then(() => {
+          flickAudio.pause();
+          flickAudio.currentTime = 0;
+        }).catch(() => {});
+      }
     }
 
-    function playCoinFlickSound() {
-      try {
-        const ctx = getAudioContext();
-        if (!ctx) return;
-        const now = ctx.currentTime;
+    ['touchstart', 'touchend', 'mousedown', 'pointerdown', 'click'].forEach(evt => {
+      window.addEventListener(evt, unlockAudioEngine, { once: false, passive: true });
+    });
 
-        const flickOsc = ctx.createOscillator();
-        const flickGain = ctx.createGain();
+    // Synthesized Web Audio fallback for flick
+    function playSynthFlick() {
+      try {
+        if (!audioCtx) {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (AudioContextClass) audioCtx = new AudioContextClass();
+        }
+        if (!audioCtx) return;
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+
+        const now = audioCtx.currentTime;
+
+        // Snappy mechanical flick impulse
+        const flickOsc = audioCtx.createOscillator();
+        const flickGain = audioCtx.createGain();
         flickOsc.type = 'triangle';
-        flickOsc.frequency.setValueAtTime(460, now);
-        flickOsc.frequency.exponentialRampToValueAtTime(120, now + 0.05);
-        flickGain.gain.setValueAtTime(0.48, now);
-        flickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+        flickOsc.frequency.setValueAtTime(480, now);
+        flickOsc.frequency.exponentialRampToValueAtTime(140, now + 0.04);
+        flickGain.gain.setValueAtTime(0.6, now);
+        flickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
         flickOsc.connect(flickGain);
-        flickGain.connect(ctx.destination);
+        flickGain.connect(audioCtx.destination);
         flickOsc.start(now);
         flickOsc.stop(now + 0.05);
 
-        const bell1 = ctx.createOscillator();
-        const bellGain1 = ctx.createGain();
+        // High crystal bell chime 1
+        const bell1 = audioCtx.createOscillator();
+        const bellGain1 = audioCtx.createGain();
         bell1.type = 'sine';
-        bell1.frequency.setValueAtTime(1960, now);
-        bellGain1.gain.setValueAtTime(0.32, now);
-        bellGain1.gain.exponentialRampToValueAtTime(0.001, now + 0.95);
+        bell1.frequency.setValueAtTime(2150, now);
+        bellGain1.gain.setValueAtTime(0.45, now);
+        bellGain1.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
         bell1.connect(bellGain1);
-        bellGain1.connect(ctx.destination);
+        bellGain1.connect(audioCtx.destination);
         bell1.start(now);
-        bell1.stop(now + 0.96);
+        bell1.stop(now + 1.25);
 
-        const bell2 = ctx.createOscillator();
-        const bellGain2 = ctx.createGain();
+        // Harmonic overtone 2
+        const bell2 = audioCtx.createOscillator();
+        const bellGain2 = audioCtx.createGain();
         bell2.type = 'sine';
-        bell2.frequency.setValueAtTime(3200, now);
-        bellGain2.gain.setValueAtTime(0.2, now);
-        bellGain2.gain.exponentialRampToValueAtTime(0.001, now + 0.65);
+        bell2.frequency.setValueAtTime(3420, now);
+        bellGain2.gain.setValueAtTime(0.3, now);
+        bellGain2.gain.exponentialRampToValueAtTime(0.001, now + 0.85);
         bell2.connect(bellGain2);
-        bellGain2.connect(ctx.destination);
+        bellGain2.connect(audioCtx.destination);
         bell2.start(now);
-        bell2.stop(now + 0.66);
+        bell2.stop(now + 0.9);
       } catch (err) {}
     }
 
-    function playLandingSound() {
+    // Synthesized Web Audio fallback for landing
+    function playSynthLand() {
       try {
-        const ctx = getAudioContext();
-        if (!ctx) return;
-        const now = ctx.currentTime;
-
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
+        if (!audioCtx) return;
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(175, now);
-        osc.frequency.exponentialRampToValueAtTime(45, now + 0.13);
-        gain.gain.setValueAtTime(0.35, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.13);
+        osc.frequency.setValueAtTime(200, now);
+        osc.frequency.exponentialRampToValueAtTime(50, now + 0.14);
+        gain.gain.setValueAtTime(0.4, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
         osc.connect(gain);
-        gain.connect(ctx.destination);
+        gain.connect(audioCtx.destination);
         osc.start(now);
-        osc.stop(now + 0.14);
+        osc.stop(now + 0.15);
       } catch (err) {}
+    }
+
+    // Coin Flick Sound: Dual-Engine
+    function playCoinFlickSound() {
+      unlockAudioEngine();
+      try {
+        const sound = flickAudio.cloneNode();
+        sound.volume = 1.0;
+        const promise = sound.play();
+        if (promise !== undefined) {
+          promise.catch(() => {
+            playSynthFlick();
+          });
+        }
+      } catch (e) {
+        playSynthFlick();
+      }
+    }
+
+    // Coin Landing Sound: Dual-Engine
+    function playLandingSound() {
+      unlockAudioEngine();
+      try {
+        const sound = landAudio.cloneNode();
+        sound.volume = 0.9;
+        const promise = sound.play();
+        if (promise !== undefined) {
+          promise.catch(() => {
+            playSynthLand();
+          });
+        }
+      } catch (e) {
+        playSynthLand();
+      }
     }
 
     /* =========================================================
