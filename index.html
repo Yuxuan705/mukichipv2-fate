@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>MUKICHIP V2: DAILY SOLVER - FATE</title>
+
+  <!-- Google Fonts: Bagel Fat One & Handwritten Fallbacks -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Long+Cang&family=Ma+Shan+Zheng&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+
+  <style>
+    /* =========================================================
+       1. Visual & Brand System Rules
+       ========================================================= */
+    @font-face {
+      font-family: 'Liyu Shoushu';
+      src: url('LiyuShoushu.ttf') format('truetype'),
+           url('Liyu Shoushu.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    :root {
+      --color-bg: #ffffff;
+      --color-brown: #926653;
+      --color-accent-orange: #EEA445;
+      --font-bagel: 'Bagel Fat One', cursive, system-ui, sans-serif;
+      --font-liyu: 'Liyu Shoushu', 'Ma Shan Zheng', 'Long Cang', 'ZCOOL KuaiLe', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      --coin-size: 196px;
+      --coin-thickness: 18px;
+      --coin-half-thickness: 9px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      min-height: 100vh;
+      min-height: -webkit-fill-available;
+      background-color: var(--color-bg);
+      color: var(--color-brown);
+      font-family: var(--font-bagel);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      overflow-x: hidden;
+      touch-action: manipulation;
+    }
+
+    /* Mobile-First Responsive Container (Strictly max-width: 340px, centered, padding: 20px 20px 60px) */
+    .app-viewport {
+      width: 100%;
+      max-width: 340px;
+      margin: 0 auto;
+      padding: 20px 20px 60px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      height: 100vh;
+      height: -webkit-fill-available;
+      justify-content: space-between;
+      overflow: hidden;
+    }
+
+    /* =========================================================
+       2. Top Fate Artwork & Divider Line
+       ========================================================= */
+    .top-artwork-container {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .fate-header-img {
+      width: 72%;
+      max-width: 230px;
+      height: auto;
+      display: block;
+      margin: 0 auto;
+      user-select: none;
+      -webkit-user-drag: none;
+      pointer-events: none;
+    }
+
+    .divider-line {
+      width: 90%;
+      max-width: 300px;
+      height: 4px;
+      background-color: var(--color-brown);
+      border-radius: 9999px;
+      margin: -2px auto 0;
+      position: relative;
+      z-index: 2;
+    }
+
+    /* Main Title: strictly letter-spacing: 0.05em; */
+    .topic-title {
+      font-family: var(--font-bagel);
+      font-size: 18.5px;
+      font-weight: 400;
+      color: var(--color-brown);
+      text-align: center;
+      letter-spacing: 0.05em; /* +50 tracking strictly applied */
+      text-transform: uppercase;
+      margin-top: 12px;
+      margin-bottom: 2px;
+      user-select: none;
+      flex-shrink: 0;
+    }
+
+    /* =========================================================
+       3. 3D Coin Toss Arena & Interactive Stage
+       ========================================================= */
+    .coin-stage {
+      width: 100%;
+      flex: 1;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end; /* Rests at bottom showing half */
+      perspective: 900px;
+      perspective-origin: 50% 50%;
+      user-select: none;
+      touch-action: none; /* Prevents browser scroll during swipe */
+      margin-bottom: 8px;
+    }
+
+    /* Visual Swipe Cue Box: [ 👆 SWIPE UP TO FLICK / 向上推抛硬币 ] */
+    .swipe-cue-box {
+      position: absolute;
+      bottom: 126px; /* Floats above the half-revealed coin */
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      pointer-events: none;
+      z-index: 10;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+      white-space: nowrap;
+    }
+
+    .swipe-cue-box.hidden {
+      opacity: 0;
+      transform: translate(-50%, -12px);
+    }
+
+    .cue-text {
+      font-family: var(--font-liyu);
+      font-size: 15px;
+      color: var(--color-brown);
+      letter-spacing: 0.6px;
+      font-weight: 600;
+      text-shadow: 0 1px 3px rgba(255, 255, 255, 0.9);
+      animation: cueBounce 1.4s infinite ease-in-out;
+    }
+
+    @keyframes cueBounce {
+      0%, 100% {
+        transform: translateY(0);
+      }
+      50% {
+        transform: translateY(-6px);
+      }
+    }
+
+    /* Dynamic Floor Drop Shadow */
+    .coin-floor-shadow {
+      position: absolute;
+      bottom: -4px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 150px;
+      height: 20px;
+      background: radial-gradient(ellipse at center, rgba(146, 102, 83, 0.42) 0%, rgba(146, 102, 83, 0.12) 55%, transparent 75%);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 1;
+      filter: blur(4px);
+      transition: transform 0.15s ease, opacity 0.15s ease;
+    }
+
+    /* 3D Coin Anchor & Motion Wrapper */
+    .coin-anchor {
+      position: relative;
+      width: var(--coin-size);
+      height: var(--coin-size);
+      /* Initial state: resting at bottom showing half of the coin */
+      transform: translateY(48%);
+      transform-style: preserve-3d;
+      cursor: grab;
+      z-index: 5;
+      will-change: transform;
+    }
+
+    .coin-anchor:active {
+      cursor: grabbing;
+    }
+
+    /* Inner 3D Coin Cylinder Body */
+    .coin-3d {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+      border-radius: 50%;
+      will-change: transform;
+      /* Initial resting perspective angle: tilted back so top rim is visible */
+      transform: rotateX(24deg) rotateY(0deg) rotateZ(0deg);
+      transition: transform 0.1s ease-out;
+    }
+
+    /* Front & Back Coin Faces */
+    .coin-face {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-color: #FAF7F2;
+      box-shadow: 
+        inset 0 0 0 2px rgba(146, 102, 83, 0.4),
+        inset 0 2px 4px rgba(255, 255, 255, 0.6),
+        inset 0 -2px 6px rgba(100, 60, 40, 0.22);
+    }
+
+    /* TICK Face (✔️) */
+    .coin-face.face-tick {
+      background-image: url('coin-tick.png');
+      transform: translateZ(var(--coin-half-thickness));
+    }
+
+    /* CROSS Face (✖️) */
+    .coin-face.face-cross {
+      background-image: url('coin-cross.png');
+      transform: rotateY(180deg) translateZ(var(--coin-half-thickness));
+    }
+
+    /* Specular Light Reflection Overlay */
+    .coin-shine {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(255,255,255,0.42) 0%, rgba(255,255,255,0) 45%, rgba(0,0,0,0.12) 100%);
+      pointer-events: none;
+      mix-blend-mode: overlay;
+    }
+
+    /* 3D Stacked Depth Slices for Solid Rim */
+    .coin-rim-slice {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      box-sizing: border-box;
+      pointer-events: none;
+      border: 2px solid #8D5C43;
+      background: radial-gradient(circle, transparent 91%, #B3835B 95%, #8D5C43 100%);
+    }
+
+    /* 3D Radial Cylindrical Perimeter Rim */
+    .coin-rim-facets {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      transform-style: preserve-3d;
+      pointer-events: none;
+    }
+
+    .rim-facet {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 18px;
+      height: var(--coin-thickness);
+      margin-top: calc(var(--coin-thickness) * -0.5);
+      margin-left: -9px;
+      background: linear-gradient(to bottom, #7A4B36 0%, #D19C6A 25%, #F4D39B 50%, #C89260 75%, #6B3F2C 100%);
+      border-top: 1px solid #5C3220;
+      border-bottom: 1px solid #5C3220;
+      transform-origin: center center;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+    }
+
+    /* Resting Idle Breathing Animation */
+    @keyframes restingBreathe {
+      0%, 100% {
+        transform: rotateX(24deg) translateY(0);
+      }
+      50% {
+        transform: rotateX(28deg) translateY(-4px);
+      }
+    }
+
+    .coin-3d.resting {
+      animation: restingBreathe 3s infinite ease-in-out;
+    }
+
+    /* Landing Bounce Wobble */
+    @keyframes landingWobble {
+      0% {
+        transform: translateY(-60px) scale(1, 1);
+      }
+      25% {
+        transform: translateY(-54px) scale(1.06, 0.94);
+      }
+      50% {
+        transform: translateY(-72px) scale(0.96, 1.04);
+      }
+      75% {
+        transform: translateY(-58px) scale(1.02, 0.98);
+      }
+      90% {
+        transform: translateY(-62px) scale(0.99, 1.01);
+      }
+      100% {
+        transform: translateY(-60px) scale(1, 1);
+      }
+    }
+
+    .coin-anchor.landing-bounce {
+      animation: landingWobble 0.65s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+    }
+
+    /* =========================================================
+       4. Bottom Right Floating Instagram Stamp
+       ========================================================= */
+    .bottom-bar {
+      width: 100%;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      position: relative;
+      z-index: 20;
+      flex-shrink: 0;
+    }
+
+    .stamp-link {
+      display: inline-block;
+      text-decoration: none;
+      outline: none;
+      cursor: pointer;
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    .stamp-link:hover {
+      transform: scale(1.08) rotate(3deg);
+    }
+
+    /* Active press state: strictly transform: scale(0.8) */
+    .stamp-link:active {
+      transform: scale(0.8) !important;
+    }
+
+    .stamp-img {
+      width: 78px;
+      height: 78px;
+      display: block;
+      object-fit: contain;
+      filter: drop-shadow(0 3px 10px rgba(146, 102, 83, 0.16));
+    }
+
+  </style>
+</head>
+<body>
+
+  <main class="app-viewport">
+
+    <!-- 1. Top Fate Header Image & Thick Rounded Divider Line -->
+    <header class="top-artwork-container">
+      <img src="fate-header.png" 
+           alt="Fate Header" 
+           class="fate-header-img" 
+           id="fateHeaderImg"
+           onerror="this.onerror=null; this.style.display='none';">
+      <div class="divider-line" aria-hidden="true"></div>
+    </header>
+
+    <!-- 2. Main Title: Bagel Fat One, #926653, letter-spacing: 0.05em; -->
+    <h1 class="topic-title">MUKICHIP V2: DAILY SOLVER</h1>
+
+    <!-- 3. Coin Toss Container: Centered 3D Coin Interaction Area -->
+    <section class="coin-stage" id="coinStage" aria-label="3D 抛硬币区域">
+
+      <!-- Visual Swipe Cue: [ 👆 SWIPE UP TO FLICK / 向上推抛硬币 ] rendered in Liyu Shoushu -->
+      <div class="swipe-cue-box" id="swipeCueBox">
+        <div class="cue-text">[ 👆 SWIPE UP TO FLICK / 向上推抛硬币 ]</div>
+      </div>
+
+      <!-- Dynamic Floor Drop Shadow -->
+      <div class="coin-floor-shadow" id="coinFloorShadow"></div>
+
+      <!-- Coin Anchor & 3D Cylinder -->
+      <div class="coin-anchor" id="coinAnchor" role="button" tabindex="0" aria-label="抛掷命运硬币">
+        <div class="coin-3d resting" id="coin3D">
+          
+          <!-- 3D Cylindrical Rim Depth Slices -->
+          <div class="coin-rim-slice" style="transform: translateZ(-8px);"></div>
+          <div class="coin-rim-slice" style="transform: translateZ(-6px);"></div>
+          <div class="coin-rim-slice" style="transform: translateZ(-4px);"></div>
+          <div class="coin-rim-slice" style="transform: translateZ(-2px);"></div>
+          <div class="coin-rim-slice" style="transform: translateZ(0px);"></div>
+          <div class="coin-rim-slice" style="transform: translateZ(2px);"></div>
+          <div class="coin-rim-slice" style="transform: translateZ(4px);"></div>
+          <div class="coin-rim-slice" style="transform: translateZ(6px);"></div>
+          <div class="coin-rim-slice" style="transform: translateZ(8px);"></div>
+
+          <!-- 36 Radial Facets for Solid 3D Rim Depth (Matching 3D Reference) -->
+          <div class="coin-rim-facets" id="coinRimFacets"></div>
+
+          <!-- CROSS Side (✖️) - 50% Chance -->
+          <div class="coin-face face-cross" id="coinCross">
+            <div class="coin-shine"></div>
+          </div>
+
+          <!-- TICK Side (✔️) - 50% Chance -->
+          <div class="coin-face face-tick" id="coinTick">
+            <div class="coin-shine"></div>
+          </div>
+
+        </div>
+      </div>
+
+    </section>
+
+    <!-- 4. Bottom Right Floating Instagram Stamp -->
+    <footer class="bottom-bar">
+      <a href="https://www.instagram.com/yuxuantsuki" 
+         target="_blank" 
+         rel="noopener noreferrer" 
+         class="stamp-link" 
+         id="stampLink"
+         aria-label="Visit Instagram @yuxuantsuki">
+        <img src="ig-stamp.png" 
+             alt="Instagram Stamp" 
+             class="stamp-img"
+             onerror="this.onerror=null; this.style.opacity='0.4';">
+      </a>
+    </footer>
+
+  </main>
+
+  <script>
+    /* =========================================================
+       1. Asset Preloading & Error Fallback Handlers
+       ========================================================= */
+    const REQUIRED_ASSETS = ['coin-tick.png', 'coin-cross.png', 'ig-stamp.png', 'fate-header.png'];
+    REQUIRED_ASSETS.forEach(src => {
+      const img = new Image();
+      img.onerror = () => console.warn(`Asset fallback handled for: ${src}`);
+      img.src = src;
+    });
+
+    /* =========================================================
+       2. Realistic 3D Cylindrical Rim Construction
+       Generates 36 faceted perimeter strips for solid 3D depth
+       ========================================================= */
+    const rimFacetsContainer = document.getElementById('coinRimFacets');
+    const NUM_FACETS = 36;
+    const RADIUS = 97.5; // (196px diameter / 2)
+    const STEP_ANGLE = 360 / NUM_FACETS;
+
+    for (let i = 0; i < NUM_FACETS; i++) {
+      const facet = document.createElement('div');
+      facet.className = 'rim-facet';
+      const angleDeg = i * STEP_ANGLE;
+      facet.style.transform = `rotate(${angleDeg}deg) translateY(-${RADIUS}px) rotateX(90deg)`;
+      
+      const lightFactor = Math.cos((angleDeg * Math.PI) / 180);
+      if (lightFactor > 0.4) {
+        facet.style.filter = 'brightness(1.16)';
+      } else if (lightFactor < -0.4) {
+        facet.style.filter = 'brightness(0.76)';
+      }
+      rimFacetsContainer.appendChild(facet);
+    }
+
+    /* =========================================================
+       3. Physical Web Audio Synthesis
+       Crisp metallic flick ping ("Tiiing") and tactile landing thump
+       ========================================================= */
+    let audioCtx = null;
+
+    function getAudioContext() {
+      if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) {
+          audioCtx = new AudioContextClass();
+        }
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    function playCoinFlickSound() {
+      try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+
+        // Snappy mechanical flick impulse
+        const flickOsc = ctx.createOscillator();
+        const flickGain = ctx.createGain();
+        flickOsc.type = 'triangle';
+        flickOsc.frequency.setValueAtTime(460, now);
+        flickOsc.frequency.exponentialRampToValueAtTime(120, now + 0.05);
+        flickGain.gain.setValueAtTime(0.48, now);
+        flickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+        flickOsc.connect(flickGain);
+        flickGain.connect(ctx.destination);
+        flickOsc.start(now);
+        flickOsc.stop(now + 0.05);
+
+        // High crystal bell chime
+        const bell1 = ctx.createOscillator();
+        const bellGain1 = ctx.createGain();
+        bell1.type = 'sine';
+        bell1.frequency.setValueAtTime(1960, now);
+        bellGain1.gain.setValueAtTime(0.32, now);
+        bellGain1.gain.exponentialRampToValueAtTime(0.001, now + 0.95);
+        bell1.connect(bellGain1);
+        bellGain1.connect(ctx.destination);
+        bell1.start(now);
+        bell1.stop(now + 0.96);
+
+        // Harmonic shimmer overtone
+        const bell2 = ctx.createOscillator();
+        const bellGain2 = ctx.createGain();
+        bell2.type = 'sine';
+        bell2.frequency.setValueAtTime(3200, now);
+        bellGain2.gain.setValueAtTime(0.2, now);
+        bellGain2.gain.exponentialRampToValueAtTime(0.001, now + 0.65);
+        bell2.connect(bellGain2);
+        bellGain2.connect(ctx.destination);
+        bell2.start(now);
+        bell2.stop(now + 0.66);
+      } catch (err) {}
+    }
+
+    function playLandingSound() {
+      try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(175, now);
+        osc.frequency.exponentialRampToValueAtTime(45, now + 0.13);
+        gain.gain.setValueAtTime(0.35, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.13);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.14);
+      } catch (err) {}
+    }
+
+    /* =========================================================
+       4. Gesture-Based Coin Toss Mechanics (Touch & Flick)
+       ========================================================= */
+    const coinStage = document.getElementById('coinStage');
+    const coinAnchor = document.getElementById('coinAnchor');
+    const coin3D = document.getElementById('coin3D');
+    const swipeCueBox = document.getElementById('swipeCueBox');
+    const coinFloorShadow = document.getElementById('coinFloorShadow');
+
+    const RESTING_TRANSLATE_PERCENT = 48; // Half concealed at bottom
+    const SETTLED_TRANSLATE_Y = -60;      // Centered display upon landing
+
+    let isFlipping = false;
+    let isDragging = false;
+    let hasTossedOnce = false;
+    let startY = 0;
+    let currentY = 0;
+    let startTime = 0;
+    let currentTotalRotY = 0; // Cumulative Y rotation
+
+    // Drag tracking physics
+    function updateDrag(deltaY) {
+      if (isFlipping) return;
+
+      const clampedDeltaY = Math.min(0, deltaY); // Only allow pulling upwards
+      const basePercent = hasTossedOnce ? 0 : RESTING_TRANSLATE_PERCENT;
+      const basePx = hasTossedOnce ? SETTLED_TRANSLATE_Y : 0;
+
+      coinAnchor.style.transition = 'none';
+      coinAnchor.style.transform = `translateY(calc(${basePercent}% + ${basePx + clampedDeltaY}px))`;
+
+      const extraTilt = Math.min(28, Math.abs(clampedDeltaY) * 0.28);
+      coin3D.style.transition = 'none';
+      coin3D.style.transform = `rotateX(${24 - extraTilt}deg) rotateY(${currentTotalRotY}deg)`;
+
+      const shadowScale = Math.max(0.6, 1 - Math.abs(clampedDeltaY) * 0.003);
+      coinFloorShadow.style.transform = `translateX(-50%) scale(${shadowScale})`;
+      coinFloorShadow.style.opacity = Math.max(0.12, 0.42 - Math.abs(clampedDeltaY) * 0.002);
+    }
+
+    // Spring back to rest on cancel
+    function cancelDrag() {
+      coinAnchor.style.transition = 'transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)';
+      const basePercent = hasTossedOnce ? 0 : RESTING_TRANSLATE_PERCENT;
+      const basePx = hasTossedOnce ? SETTLED_TRANSLATE_Y : 0;
+      coinAnchor.style.transform = `translateY(calc(${basePercent}% + ${basePx}px))`;
+
+      coin3D.style.transition = 'transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)';
+      coin3D.style.transform = `rotateX(${hasTossedOnce ? 0 : 24}deg) rotateY(${currentTotalRotY}deg)`;
+
+      coinFloorShadow.style.transition = 'transform 0.35s ease, opacity 0.35s ease';
+      coinFloorShadow.style.transform = 'translateX(-50%) scale(1)';
+      coinFloorShadow.style.opacity = '0.42';
+    }
+
+    /* =========================================================
+       5. Upward Launch, 3D Air Flip & Gravity Drop
+       ========================================================= */
+    function launchCoinToss(dragVelocity = 0) {
+      if (isFlipping) return;
+      isFlipping = true;
+      hasTossedOnce = true;
+
+      // Audio & Haptic Feedback
+      playCoinFlickSound();
+      if (navigator.vibrate) {
+        navigator.vibrate(25);
+      }
+
+      swipeCueBox.classList.add('hidden');
+      coin3D.classList.remove('resting');
+      coinAnchor.classList.remove('landing-bounce');
+
+      // 50/50 Probability Split (100% total)
+      // Outcome: TICK (✔️) or CROSS (✖️)
+      const outcomeIsTick = Math.random() < 0.5;
+      
+      // Target angles:
+      // TICK: 0deg relative to base (0, 360, 720...)
+      // CROSS: 180deg relative to base (180, 540, 900...)
+      const targetFaceAngle = outcomeIsTick ? 0 : 180;
+      const totalTurns = 4; // 1440deg base air rotation
+
+      const currentMod = ((currentTotalRotY % 360) + 360) % 360;
+      let diff = targetFaceAngle - currentMod;
+      if (diff <= 0) diff += 360;
+      const finalRotY = currentTotalRotY + (totalTurns * 360) + diff;
+      currentTotalRotY = finalRotY;
+
+      // Upward launch translateY(-180px) to -240px with natural gravity drop
+      const FLIGHT_DURATION = 1380; // ms
+      const launchStartTime = performance.now();
+      const startPosY = 90;
+      const peakApexY = -240; // High in air
+      const finalPosY = SETTLED_TRANSLATE_Y;
+
+      // Animate shadow in air
+      coinFloorShadow.style.transition = `all ${FLIGHT_DURATION * 0.45}ms cubic-bezier(0.2, 0.8, 0.4, 1)`;
+      coinFloorShadow.style.transform = 'translateX(-50%) scale(1.65)';
+      coinFloorShadow.style.opacity = '0.08';
+      coinFloorShadow.style.filter = 'blur(12px)';
+
+      setTimeout(() => {
+        coinFloorShadow.style.transition = `all ${FLIGHT_DURATION * 0.55}ms cubic-bezier(0.25, 1, 0.5, 1)`;
+        coinFloorShadow.style.transform = 'translateX(-50%) scale(1)';
+        coinFloorShadow.style.opacity = '0.4';
+        coinFloorShadow.style.filter = 'blur(4px)';
+      }, FLIGHT_DURATION * 0.45);
+
+      function animateAirFlight(now) {
+        const elapsed = now - launchStartTime;
+        const progress = Math.min(1, elapsed / FLIGHT_DURATION);
+
+        // Gravity physics curve: parabolic ascent & gravity descent
+        let currentHeight;
+        if (progress < 0.45) {
+          const pUp = progress / 0.45;
+          const easeOut = Math.sin((pUp * Math.PI) / 2);
+          currentHeight = startPosY + (peakApexY - startPosY) * easeOut;
+        } else {
+          const pDown = (progress - 0.45) / 0.55;
+          const easeIn = pDown * pDown;
+          currentHeight = peakApexY + (finalPosY - peakApexY) * easeIn;
+        }
+
+        coinAnchor.style.transform = `translateY(${currentHeight}px)`;
+
+        // 3D Air Flip: rotateY(1440deg) rotateX(720deg)
+        const spinProgress = 1 - Math.pow(1 - progress, 2.5);
+        const curY = currentTotalRotY - (1 - spinProgress) * ((totalTurns * 360) + diff);
+        const curX = Math.sin(progress * Math.PI * 4) * (1 - progress) * 80;
+        const curZ = Math.sin(progress * Math.PI * 2) * (1 - progress) * 16;
+
+        coin3D.style.transform = `rotateX(${curX}deg) rotateY(${curY}deg) rotateZ(${curZ}deg)`;
+
+        if (progress < 1) {
+          requestAnimationFrame(animateAirFlight);
+        } else {
+          onCoinLanded();
+        }
+      }
+
+      requestAnimationFrame(animateAirFlight);
+    }
+
+    // Landing sequence: natural gravity bounce, display ONLY the coin face image
+    function onCoinLanded() {
+      isFlipping = false;
+
+      playLandingSound();
+      if (navigator.vibrate) {
+        navigator.vibrate([15, 30, 20]);
+      }
+
+      coinAnchor.style.transform = `translateY(${SETTLED_TRANSLATE_Y}px)`;
+      coin3D.style.transform = `rotateX(0deg) rotateY(${currentTotalRotY}deg) rotateZ(0deg)`;
+
+      // Apply bounce cubic-bezier(0.25, 1, 0.5, 1)
+      coinAnchor.classList.add('landing-bounce');
+
+      // Update cue text for flicking again
+      setTimeout(() => {
+        swipeCueBox.querySelector('.cue-text').textContent = '[ 👆 SWIPE UP / 点击或上滑再次抛币 ]';
+        swipeCueBox.classList.remove('hidden');
+      }, 700);
+    }
+
+    /* =========================================================
+       6. Event Handlers & Scroll Lock
+       ========================================================= */
+    // Touch Events with Scroll Lock
+    coinStage.addEventListener('touchstart', (e) => {
+      if (isFlipping) return;
+      isDragging = true;
+      startY = e.touches[0].clientY;
+      currentY = startY;
+      startTime = performance.now();
+    }, { passive: false });
+
+    window.addEventListener('touchmove', (e) => {
+      if (!isDragging || isFlipping) return;
+      e.preventDefault(); // Apply e.preventDefault() during touch swipe over coin area to prevent scrolling
+      currentY = e.touches[0].clientY;
+      const deltaY = currentY - startY;
+      updateDrag(deltaY);
+    }, { passive: false });
+
+    window.addEventListener('touchend', (e) => {
+      if (!isDragging || isFlipping) return;
+      isDragging = false;
+      const deltaY = currentY - startY;
+      const duration = performance.now() - startTime;
+      const velocity = Math.abs(deltaY) / Math.max(1, duration);
+
+      // Trigger if upward swipe distance > 40px or quick flick
+      if (deltaY < -38 || (deltaY < -15 && velocity > 0.35)) {
+        launchCoinToss(velocity);
+      } else {
+        cancelDrag();
+      }
+    });
+
+    // Mouse Fallbacks (Desktop Testing & Fallback Click)
+    coinStage.addEventListener('mousedown', (e) => {
+      if (isFlipping) return;
+      if (e.target.closest('#stampLink')) return;
+      
+      isDragging = true;
+      startY = e.clientY;
+      currentY = startY;
+      startTime = performance.now();
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging || isFlipping) return;
+      currentY = e.clientY;
+      const deltaY = currentY - startY;
+      updateDrag(deltaY);
+    });
+
+    window.addEventListener('mouseup', (e) => {
+      if (!isDragging || isFlipping) return;
+      isDragging = false;
+      const deltaY = currentY - startY;
+      const duration = performance.now() - startTime;
+      const velocity = Math.abs(deltaY) / Math.max(1, duration);
+
+      if (deltaY < -38 || (deltaY < -15 && velocity > 0.35)) {
+        launchCoinToss(velocity);
+      } else if (Math.abs(deltaY) < 6) {
+        // Fallback Click: Tapping/clicking coin also triggers upward toss animation
+        launchCoinToss(0.5);
+      } else {
+        cancelDrag();
+      }
+    });
+
+    // Keyboard Fallback
+    coinAnchor.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        launchCoinToss(0.5);
+      }
+    });
+
+  </script>
+</body>
+</html>
